@@ -1,0 +1,35 @@
+# Data files
+data/raw/
+data/processed/
+*.csv
+*.parquet
+
+# Model artifacts
+models/*.pkl
+models/*.joblib
+models/*.pt
+models/*.h5
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Misc
+*.log
+/tmp/

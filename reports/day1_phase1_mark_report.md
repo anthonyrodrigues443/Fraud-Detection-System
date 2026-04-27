@@ -38,7 +38,7 @@ Same as Anthony — Sparkov/Kartik2112 credit card transactions from HuggingFace
 | Total samples | 1,048,575 |
 | Fraud rate | 0.573% |
 | Train/Test (random) | 838,860 / 209,715 (Anthony's setup) |
-| Train/Test (temporal) | 838,860 / 209,715, cutoff 2020-01-13 |
+| Train/Test (temporal) | 838,860 / 209,715, cutoff 2019-12-13 08:27:00 |
 | Daily fraud rate | mean 0.625%, std 0.475% (mild non-stationarity) |
 | Features used | 17 (identical to Anthony's set) |
 
@@ -51,13 +51,13 @@ The dataset has **943 unique cards** (cc_num), of which **596 (63.20%) are ever-
 - Top 10% of defrauded cards account for 15.9% of all fraud
 - Top 25% account for 35.3% (relatively spread out, NOT power-law concentrated)
 
-**Implication for split methodology:** Because almost every card has BOTH legitimate and fraud transactions and fraudulent transactions repeat 10× on the same card, a stratified random split puts ~99.99% of test cards' history into the training set. The model isn't really classifying "is this transaction fraud?" — it's pattern-matching against the same card's other behavior. A temporal split breaks that leakage path. (`results/mark_card_level_analysis.png`)
+**Implication for split methodology:** With only 943 unique cards across 1,048,575 transactions (~1,112 transactions per card on average), an 80/20 random split puts roughly 80% of every test card's other transactions into the training set. The model isn't really classifying "is this transaction fraud?" — it's pattern-matching against the same card's other behavior. A temporal split breaks that leakage path (the cutoff at 2019-12-13 means test transactions are strictly after train transactions). (`results/mark_card_level_analysis.png`)
 
 ### Mutual information ranking (model-free)
-Top 5 features by MI with `is_fraud`: `unix_time` (0.0145), `category_encoded` (0.0102), `amt` (0.0099), `log_amt` (0.0089), `is_night` (0.0079). Anthony's XGBoost importance ranked `is_night` (0.41) and `amt` (0.35) at the top. MI broadly agrees on `amt`, `category`, `is_night` carrying signal — but it ranks **`unix_time` highest**, which is suspicious: it's effectively a row-id proxy for date and could be picking up calendar-level fraud bursts that the model will overfit to. Worth flagging for Phase 3 — `unix_time` may need to be replaced with cyclical date features. (`results/mark_mutual_information.png`)
+Top 5 features by MI with `is_fraud`: `age` (0.0852), `amt` (0.0772), `log_amt` (0.0771), `unix_time` (0.0339), `is_night` (0.0310). Anthony's XGBoost importance ranked `is_night` (0.41) and `amt` (0.35) at the top. MI agrees `amt`/`log_amt`/`is_night` carry signal, but it ranks **`age` highest** — which is surprising because Pearson correlation with the target is only 0.0091 (rank 8 by linear correlation). MI captures non-linear / non-monotone dependence; `age` likely has a U-shaped or threshold relationship with fraud risk that linear models miss. Also notable: `unix_time` is rank 4, which is suspicious — it's a monotone timestamp and likely a calendar-leakage proxy. Worth flagging for Phase 3 — `unix_time` may need cyclical replacement and `age` deserves non-linear features. (`results/mark_mutual_information.png`)
 
 ### Correlation structure
-No feature pair has |Pearson r| > 0.5 — features are largely independent. Good news for the linear/probabilistic baselines below: the Naive Bayes independence assumption isn't catastrophically violated. (`results/mark_correlation_matrix.png`)
+Three feature pairs are nearly redundant: `lat <-> merch_lat: r=0.994`, `long <-> merch_long: r=0.999`, `day_of_week <-> is_weekend: r=0.827`. The first two reflect a dataset artifact — customer and merchant locations are almost identical row by row, which means `distance_km` (which uses both) is effectively constant. The Naive Bayes independence assumption is **catastrophically violated** for the lat/long pairs, and yet GaussianNB still achieves AUPRC=0.2172 below; that resilience comes from the discriminating features (`amt`, `is_night`) being approximately independent of each other and of the redundant geo features. (`results/mark_correlation_matrix.png`)
 
 ## Experiments
 
@@ -96,15 +96,15 @@ Each rule contributes +1 to a risk score (max 4). Evaluated on the temporal test
 
 **Interpretation:** Two important findings here.
 
-First, **adding rules HURT the engine.** The single best rule (`amt > P99`, AUPRC=0.1345) is nearly 2× better than the 4-rule combination (AUPRC=0.0703). The OR-style score sum fires on too many legitimate transactions: any night transaction on the dataset is night-flagged, but the night fraud rate is only 1.6% — most flagged-by-night transactions are legit, and combining rules that each have low precision is worse than picking the one rule with high precision. This is exactly the Keeper-style counterintuitive finding the project mandate calls for.
+First, **adding rules HURT the engine.** The single best rule (`amt > P99`, AUPRC=0.1345) is nearly 2× better than the 4-rule combination (AUPRC=0.0703). The is_night rule alone has AUPRC=0.0147 (recall 87%, precision 1.6%) — it flags so many legit transactions that adding it to the score sum dilutes signal. Combining low-precision rules with a high-precision one (`amt > P99` is precision 26.5%) drags the combined precision down. This is exactly the Keeper-style counterintuitive finding the project mandate calls for.
 
 Second, **the "high-risk merchant category" rule found zero categories** — no category in the training set has fraud rate > 2%. The maximum is 1.75%. So the bank-industry intuition that some merchant categories are obviously risky doesn't translate to this dataset. Either the simulator distributes fraud uniformly across categories, or real-world category-risk only materializes after target encoding (Phase 3 work).
 
 ### Experiment M.3 — Gaussian Naive Bayes (probabilistic paradigm)
-**Hypothesis:** Despite the violated independence assumption (cell 7 confirmed feature correlations are mild — no |r|>0.5), NB will be mediocre because amount and distance distributions aren't Gaussian.
+**Hypothesis:** NB will struggle because (a) the independence assumption is catastrophically violated by the lat/merch_lat (r=0.994) and long/merch_long (r=0.999) near-duplicate pairs, and (b) `amt` and `distance_km` distributions are far from Gaussian.
 **Method:** `GaussianNB` on standardized features.
 **Result (temporal):** AUPRC=0.2172, ROC-AUC=0.9272, F1=0.3568, Precision=0.2746, Recall=0.5092.
-**Interpretation:** NB lands between LogReg-default (0.3611) and LogReg-balanced (0.2315). Surprisingly competitive given how many distributions are non-Gaussian — but well below XGBoost. **NB barely cared about split type** (delta = -0.0025): it doesn't have enough capacity to exploit the card-level temporal patterns that random split leaks. This is a useful diagnostic — see Finding 4 below.
+**Interpretation:** NB lands between LogReg-default (0.3611) and LogReg-balanced (0.2315). Held up better than expected given the violated independence assumption — likely because the *discriminating* features (`amt`, `is_night`, `category_encoded`) are approximately mutually independent, and the redundant geo pairs contribute little signal anyway. Well below XGBoost. **NB barely cared about split type** (delta = -0.0025): it doesn't have enough capacity to exploit the card-level temporal patterns that random split leaks. This is a useful diagnostic — see Finding 4 below.
 
 ### Experiment M.4 — k-NN (instance-based paradigm)
 **Hypothesis:** k-NN will be middling because it's lookup-based and the curse of dimensionality affects it at 17 features.
@@ -152,7 +152,7 @@ Ranked by AUPRC. **/Temporal** rows are production-realistic; **/Random** rows a
 
 ## What Didn't Work (and why)
 - **High-risk merchant category rule:** zero categories at >2% fraud rate (max in train was 1.75%). Industry intuition that some merchant categories are obviously risky doesn't survive the simulator's category distribution. Target encoding will salvage this in Phase 3.
-- **GaussianNB:** held its own (AUPRC=0.2172) but well below LogReg-default. The non-Gaussian distributions of `amt` and `distance_km` are the most likely culprit, even though the independence assumption was OK.
+- **GaussianNB:** held its own (AUPRC=0.2172) but well below LogReg-default. The independence assumption is violated (lat/merch_lat r=0.994, long/merch_long r=0.999), and `amt` / `distance_km` distributions are far from Gaussian. NB likely survived because the discriminating features are approximately independent of each other; the redundant geo features carry near-zero signal anyway (MI ≈ 0 for `distance_km`, `merch_lat`, `merch_long`).
 - **4-rule additive scoring:** flagged correctly that combining low-precision rules dilutes signal. The right ensemble is *meta-learning over rules*, not OR-summing them — a Phase 5 direction.
 
 ## Frontier Model Comparison
@@ -165,7 +165,7 @@ Brief — full error analysis is Phase 4. One observation: under the temporal sp
 - **Adopt temporal split as the production-realistic evaluation.** Report random-split AUPRC alongside for direct comparability with Anthony's table, but rank by temporal AUPRC.
 - **Both researchers should evaluate on temporal split going forward.** I'd advocate for this in the Phase 2 PR review.
 - **Phase 2 should test card-level split as well** — split by cc_num, not by time — to isolate which leakage path is dominant (card-level vs calendar-level).
-- **Consider replacing `unix_time` with cyclical date features** (sin/cos of day-of-year). MI ranked it #1 but it's almost certainly capturing temporal leakage rather than genuine signal.
+- **Consider replacing `unix_time` with cyclical date features** (sin/cos of day-of-year). MI ranks it #4 (0.0339) and as a monotone timestamp it's almost certainly a calendar-leakage proxy, not genuine signal. Also worth investigating: `age` is the #1 MI feature (0.0852) despite being only #8 by Pearson correlation (0.0091) — its non-monotone relationship with fraud needs binning or interaction features in Phase 3.
 - **For Phase 5's hybrid idea: don't OR supervised + unsupervised.** IF is too weak alone. Better: feed IF anomaly score as a *feature* into XGBoost.
 
 ## References Used Today

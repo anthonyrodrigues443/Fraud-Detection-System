@@ -528,5 +528,152 @@
     "anthony_default_auprc": 0.8237,
     "auprc_vs_anthony_delta": 0.0289,
     "smote_vs_vanilla_delta": -0.0864
+  },
+  "anthony_phase2": {
+    "phase": 2,
+    "date": "2026-04-28",
+    "researcher": "Anthony Rodrigues",
+    "angle": "Multi-model family comparison \u2014 6 algorithms + 3 ensembles on temporal split",
+    "split": "temporal",
+    "leaderboard": [
+      {
+        "model": "CatBoost (spw=5)",
+        "auprc": 0.8872,
+        "roc_auc": 0.997,
+        "f1": 0.8176,
+        "precision": 0.8075,
+        "recall": 0.8279,
+        "prec@95recall": 0.315,
+        "train_time_s": 5.01
+      },
+      {
+        "model": "Random Forest (cw=5)",
+        "auprc": 0.8771,
+        "roc_auc": 0.993,
+        "f1": 0.8352,
+        "precision": 0.9219,
+        "recall": 0.7633,
+        "prec@95recall": 0.2472,
+        "train_time_s": 37.57
+      },
+      {
+        "model": "Ensemble (3 boosters + RF)",
+        "auprc": 0.8736,
+        "roc_auc": 0.9958,
+        "f1": 0.8182,
+        "precision": 0.8852,
+        "recall": 0.7607,
+        "prec@95recall": 0.2989,
+        "train_time_s": NaN
+      },
+      {
+        "model": "Ensemble (all 7 avg)",
+        "auprc": 0.8709,
+        "roc_auc": 0.9946,
+        "f1": 0.81,
+        "precision": 0.922,
+        "recall": 0.7223,
+        "prec@95recall": 0.2495,
+        "train_time_s": NaN
+      },
+      {
+        "model": "Ensemble (top-3 boosters)",
+        "auprc": 0.8543,
+        "roc_auc": 0.9968,
+        "f1": 0.8029,
+        "precision": 0.8447,
+        "recall": 0.7651,
+        "prec@95recall": 0.2668,
+        "train_time_s": NaN
+      },
+      {
+        "model": "XGBoost (spw=5)",
+        "auprc": 0.853,
+        "roc_auc": 0.996,
+        "f1": 0.7946,
+        "precision": 0.8536,
+        "recall": 0.7432,
+        "prec@95recall": 0.2352,
+        "train_time_s": 1.4
+      },
+      {
+        "model": "ExtraTrees (cw=5)",
+        "auprc": 0.8198,
+        "roc_auc": 0.9905,
+        "f1": 0.7492,
+        "precision": 0.9101,
+        "recall": 0.6367,
+        "prec@95recall": 0.1666,
+        "train_time_s": 8.62
+      },
+      {
+        "model": "MLP (128-64-32)",
+        "auprc": 0.7291,
+        "roc_auc": 0.9881,
+        "f1": 0.6574,
+        "precision": 0.6009,
+        "recall": 0.7258,
+        "prec@95recall": 0.0915,
+        "train_time_s": 10.58
+      },
+      {
+        "model": "LightGBM (spw=5)",
+        "auprc": 0.4095,
+        "roc_auc": 0.8077,
+        "f1": 0.5183,
+        "precision": 0.4186,
+        "recall": 0.6803,
+        "prec@95recall": 0.0055,
+        "train_time_s": 1.53
+      },
+      {
+        "model": "LinearSVM (cw=5, cal.)",
+        "auprc": 0.2289,
+        "roc_auc": 0.904,
+        "f1": 0.0725,
+        "precision": 0.1793,
+        "recall": 0.0454,
+        "prec@95recall": 0.008,
+        "train_time_s": 137.96
+      }
+    ],
+    "champion": {
+      "model": "CatBoost (spw=5)",
+      "auprc": 0.8872,
+      "roc_auc": 0.997,
+      "f1": 0.8176,
+      "precision": 0.8075,
+      "recall": 0.8279,
+      "prec@95recall": 0.315,
+      "train_time_s": 5.01
+    },
+    "features": [
+      "amt",
+      "gender",
+      "lat",
+      "long",
+      "city_pop",
+      "unix_time",
+      "merch_lat",
+      "merch_long",
+      "hour",
+      "day_of_week",
+      "month",
+      "is_weekend",
+      "age",
+      "distance_km",
+      "category_encoded",
+      "log_amt",
+      "is_night"
+    ],
+    "train_times": {
+      "XGBoost": 1.4,
+      "LightGBM": 1.53,
+      "CatBoost": 5.01,
+      "Random Forest": 37.57,
+      "ExtraTrees": 8.62,
+      "MLP": 10.58,
+      "LinearSVM": 137.96
+    }
   }
 }

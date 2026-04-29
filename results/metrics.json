@@ -675,5 +675,236 @@
       "MLP": 10.58,
       "LinearSVM": 137.96
     }
+  },
+  "anthony_phase3": {
+    "phase": 3,
+    "date": "2026-04-29",
+    "researcher": "Anthony Rodrigues",
+    "primary_metric": "AUPRC",
+    "n_baseline_features": 17,
+    "n_new_features": 22,
+    "n_total_features": 39,
+    "feature_groups": {
+      "velocity": [
+        "vel_count_1h",
+        "vel_count_6h",
+        "vel_count_24h",
+        "vel_count_7d",
+        "vel_amt_1h",
+        "vel_amt_6h",
+        "vel_amt_24h",
+        "vel_amt_7d"
+      ],
+      "amount_deviation": [
+        "amt_zscore",
+        "amt_ratio_to_mean",
+        "amt_card_mean",
+        "amt_card_std",
+        "amt_cat_zscore"
+      ],
+      "temporal": [
+        "log_time_since_last",
+        "log_avg_time_between",
+        "hour_deviation"
+      ],
+      "geographic": [
+        "log_dist_centroid",
+        "impossible_travel"
+      ],
+      "category_merchant": [
+        "cat_fraud_rate",
+        "card_cat_count",
+        "is_new_merchant",
+        "card_txn_number"
+      ]
+    },
+    "model_comparison": [
+      {
+        "model": "CatBoost (17 baseline)",
+        "auprc": 0.8764,
+        "roc_auc": 0.9965,
+        "f1": 0.8153,
+        "precision": 0.8603,
+        "recall": 0.7747,
+        "prec@95recall": 0.3148,
+        "train_time_s": 34.68
+      },
+      {
+        "model": "CatBoost (39 all features)",
+        "auprc": 0.9824,
+        "roc_auc": 0.9998,
+        "f1": 0.9462,
+        "precision": 0.9638,
+        "recall": 0.9293,
+        "prec@95recall": 0.926,
+        "train_time_s": 35.91
+      },
+      {
+        "model": "RF (17 baseline)",
+        "auprc": 0.8895,
+        "roc_auc": 0.9917,
+        "f1": 0.8043,
+        "precision": 0.9763,
+        "recall": 0.6838,
+        "prec@95recall": 0.2203,
+        "train_time_s": 41.62
+      },
+      {
+        "model": "RF (39 all features)",
+        "auprc": 0.9639,
+        "roc_auc": 0.9984,
+        "f1": 0.8705,
+        "precision": 0.9933,
+        "recall": 0.7747,
+        "prec@95recall": 0.8086,
+        "train_time_s": 111.48
+      },
+      {
+        "model": "XGBoost (17 baseline)",
+        "auprc": 0.8581,
+        "roc_auc": 0.9961,
+        "f1": 0.806,
+        "precision": 0.8463,
+        "recall": 0.7694,
+        "prec@95recall": 0.2537,
+        "train_time_s": 1.44
+      },
+      {
+        "model": "XGBoost (39 all features)",
+        "auprc": 0.9785,
+        "roc_auc": 0.9997,
+        "f1": 0.9323,
+        "precision": 0.951,
+        "recall": 0.9144,
+        "prec@95recall": 0.8824,
+        "train_time_s": 2.34
+      },
+      {
+        "model": "Stack(CB+RF+XGB) \u2192 LogReg",
+        "auprc": 0.9822,
+        "roc_auc": 0.9996,
+        "f1": 0.9364,
+        "precision": 0.9837,
+        "recall": 0.8934,
+        "prec@95recall": 0.9323,
+        "train_time_s": null
+      },
+      {
+        "model": "Simple Average(CB+RF+XGB)",
+        "auprc": 0.9815,
+        "roc_auc": 0.9995,
+        "f1": 0.939,
+        "precision": 0.981,
+        "recall": 0.9004,
+        "prec@95recall": 0.9323,
+        "train_time_s": null
+      },
+      {
+        "model": "Weighted Avg(CB+RF+XGB)",
+        "auprc": 0.9816,
+        "roc_auc": 0.9995,
+        "f1": 0.9395,
+        "precision": 0.981,
+        "recall": 0.9013,
+        "prec@95recall": 0.9323,
+        "train_time_s": null
+      }
+    ],
+    "ablation": [
+      {
+        "Group Removed": "Velocity",
+        "N Features Removed": 8,
+        "AUPRC Without": 0.9339,
+        "AUPRC Drop": 0.0485,
+        "Drop %": "4.94%"
+      },
+      {
+        "Group Removed": "Amount Deviation",
+        "N Features Removed": 5,
+        "AUPRC Without": 0.9793,
+        "AUPRC Drop": 0.0031,
+        "Drop %": "0.32%"
+      },
+      {
+        "Group Removed": "Temporal",
+        "N Features Removed": 3,
+        "AUPRC Without": 0.9821,
+        "AUPRC Drop": 0.0003,
+        "Drop %": "0.03%"
+      },
+      {
+        "Group Removed": "Geographic",
+        "N Features Removed": 2,
+        "AUPRC Without": 0.983,
+        "AUPRC Drop": -0.0006,
+        "Drop %": "-0.06%"
+      },
+      {
+        "Group Removed": "Category/Merchant",
+        "N Features Removed": 4,
+        "AUPRC Without": 0.9838,
+        "AUPRC Drop": -0.0014,
+        "Drop %": "-0.14%"
+      },
+      {
+        "Group Removed": "ALL new features",
+        "N Features Removed": 22,
+        "AUPRC Without": 0.8764,
+        "AUPRC Drop": 0.106,
+        "Drop %": "10.79%"
+      }
+    ],
+    "feature_importance_top10": [
+      {
+        "feature": "cat_fraud_rate",
+        "importance": 14.087761614203693,
+        "group": "Category/Merch"
+      },
+      {
+        "feature": "category_encoded",
+        "importance": 13.447212899577119,
+        "group": "Baseline"
+      },
+      {
+        "feature": "amt_cat_zscore",
+        "importance": 13.115705849597528,
+        "group": "Amount Dev"
+      },
+      {
+        "feature": "amt",
+        "importance": 7.79345357941166,
+        "group": "Baseline"
+      },
+      {
+        "feature": "log_amt",
+        "importance": 6.746118099928772,
+        "group": "Baseline"
+      },
+      {
+        "feature": "vel_amt_24h",
+        "importance": 6.182433253582796,
+        "group": "Velocity"
+      },
+      {
+        "feature": "hour",
+        "importance": 6.137906900347474,
+        "group": "Baseline"
+      },
+      {
+        "feature": "is_night",
+        "importance": 4.056133974672545,
+        "group": "Baseline"
+      },
+      {
+        "feature": "age",
+        "importance": 3.4369027311242797,
+        "group": "Baseline"
+      },
+      {
+        "feature": "amt_zscore",
+        "importance": 2.440977647090143,
+        "group": "Amount Dev"
+      }
+    ]
   }
 }

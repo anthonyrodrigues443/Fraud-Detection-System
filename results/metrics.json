@@ -906,5 +906,333 @@
         "group": "Amount Dev"
       }
     ]
+  },
+  "mark_phase3": {
+    "phase": 3,
+    "date": "2026-04-29",
+    "researcher": "Mark Rodrigues",
+    "primary_metric": "AUPRC",
+    "building_on": "anthony_phase3 (CatBoost 39-feat AUPRC=0.9824)",
+    "feature_groups": {
+      "target_encoding": [
+        "te_merchant",
+        "te_state",
+        "te_city",
+        "te_job",
+        "te_zip",
+        "te_gender_raw"
+      ],
+      "merchant_velocity": [
+        "merch_count_1h",
+        "merch_count_24h",
+        "merch_amt_24h",
+        "merch_fraud_rate"
+      ],
+      "card_merchant": [
+        "card_merch_count",
+        "log_time_since_last_merch",
+        "card_merch_amt_ratio"
+      ],
+      "frequency_encoding": [
+        "freq_merchant",
+        "freq_state",
+        "freq_city"
+      ],
+      "interactions": [
+        "ix_amt_x_catfraud",
+        "ix_vel24_x_amt",
+        "ix_amtcat_x_isnight",
+        "ix_amtcat_x_velcount24"
+      ]
+    },
+    "leaderboard": [
+      {
+        "label": "Anthony 39 + Mark merch-vel (4)",
+        "n_features": 43,
+        "auprc": 0.9815,
+        "roc_auc": 0.9998,
+        "f1": 0.8975,
+        "precision": 0.8342,
+        "recall": 0.9712,
+        "prec@95rec": 0.9134,
+        "train_s": 73.3
+      },
+      {
+        "label": "Anthony 39 + Mark freq (3)",
+        "n_features": 42,
+        "auprc": 0.9806,
+        "roc_auc": 0.9997,
+        "f1": 0.9072,
+        "precision": 0.8559,
+        "recall": 0.9651,
+        "prec@95rec": 0.9081,
+        "train_s": 73.9
+      },
+      {
+        "label": "Anthony 39 + Mark card-merch (3)",
+        "n_features": 42,
+        "auprc": 0.9804,
+        "roc_auc": 0.9997,
+        "f1": 0.8963,
+        "precision": 0.836,
+        "recall": 0.9659,
+        "prec@95rec": 0.8998,
+        "train_s": 72.9
+      },
+      {
+        "label": "Anthony 39 + Mark interact (4)",
+        "n_features": 43,
+        "auprc": 0.9796,
+        "roc_auc": 0.9997,
+        "f1": 0.8962,
+        "precision": 0.8365,
+        "recall": 0.9651,
+        "prec@95rec": 0.9251,
+        "train_s": 74.5
+      },
+      {
+        "label": "Anthony 39-feat (CatBoost)",
+        "n_features": 39,
+        "auprc": 0.9791,
+        "roc_auc": 0.9997,
+        "f1": 0.9089,
+        "precision": 0.8609,
+        "recall": 0.9624,
+        "prec@95rec": 0.8976,
+        "train_s": 73.7
+      },
+      {
+        "label": "Anthony 39 + Mark TE (6)",
+        "n_features": 45,
+        "auprc": 0.4908,
+        "roc_auc": 0.9742,
+        "f1": 0.4348,
+        "precision": 0.6094,
+        "recall": 0.338,
+        "prec@95rec": 0.0304,
+        "train_s": 72.9
+      },
+      {
+        "label": "Anthony 39 + ALL Mark (20) = 59",
+        "n_features": 59,
+        "auprc": 0.4835,
+        "roc_auc": 0.9734,
+        "f1": 0.4617,
+        "precision": 0.5842,
+        "recall": 0.3817,
+        "prec@95rec": 0.031,
+        "train_s": 73.7
+      },
+      {
+        "label": "LogReg (59 features, balanced, C=1)",
+        "n_features": 59,
+        "auprc": 0.3581,
+        "roc_auc": 0.94,
+        "f1": 0.0273,
+        "precision": 0.0138,
+        "recall": 0.9336,
+        "prec@95rec": 0.0119,
+        "train_s": 33.3
+      }
+    ],
+    "alpha_sweep": [
+      {
+        "alpha": 1.0,
+        "auprc": 0.5263,
+        "roc_auc": 0.9779,
+        "f1": 0.4656,
+        "precision": 0.6566,
+        "recall": 0.3607,
+        "prec@95rec": 0.0375
+      },
+      {
+        "alpha": 10.0,
+        "auprc": 0.3814,
+        "roc_auc": 0.949,
+        "f1": 0.3729,
+        "precision": 0.6312,
+        "recall": 0.2646,
+        "prec@95rec": 0.0184
+      },
+      {
+        "alpha": 100.0,
+        "auprc": 0.4908,
+        "roc_auc": 0.9742,
+        "f1": 0.4348,
+        "precision": 0.6094,
+        "recall": 0.338,
+        "prec@95rec": 0.0304
+      },
+      {
+        "alpha": 500.0,
+        "auprc": 0.7311,
+        "roc_auc": 0.9939,
+        "f1": 0.6866,
+        "precision": 0.7245,
+        "recall": 0.6524,
+        "prec@95rec": 0.1643
+      },
+      {
+        "alpha": 2000.0,
+        "auprc": 0.8398,
+        "roc_auc": 0.9965,
+        "f1": 0.771,
+        "precision": 0.7919,
+        "recall": 0.7511,
+        "prec@95rec": 0.2602
+      }
+    ],
+    "ablation": [
+      {
+        "Group Removed": "Target Encoding",
+        "N Features": 6,
+        "AUPRC Without": 0.9811,
+        "AUPRC Drop": -0.4976,
+        "Drop %": "-102.92%"
+      },
+      {
+        "Group Removed": "Merchant Velocity",
+        "N Features": 4,
+        "AUPRC Without": 0.4945,
+        "AUPRC Drop": -0.011,
+        "Drop %": "-2.28%"
+      },
+      {
+        "Group Removed": "Card\u00d7Merchant",
+        "N Features": 3,
+        "AUPRC Without": 0.4845,
+        "AUPRC Drop": -0.001,
+        "Drop %": "-0.21%"
+      },
+      {
+        "Group Removed": "Frequency Enc",
+        "N Features": 3,
+        "AUPRC Without": 0.4913,
+        "AUPRC Drop": -0.0078,
+        "Drop %": "-1.61%"
+      },
+      {
+        "Group Removed": "Interactions",
+        "N Features": 4,
+        "AUPRC Without": 0.583,
+        "AUPRC Drop": -0.0995,
+        "Drop %": "-20.58%"
+      },
+      {
+        "Group Removed": "ALL Mark features",
+        "N Features": 20,
+        "AUPRC Without": 0.9791,
+        "AUPRC Drop": -0.4956,
+        "Drop %": "-102.50%"
+      }
+    ],
+    "top10_feature_importance": [
+      {
+        "feature": "amt_cat_zscore",
+        "importance": 14.019297802493616
+      },
+      {
+        "feature": "te_zip",
+        "importance": 9.328697696668131
+      },
+      {
+        "feature": "vel_amt_24h",
+        "importance": 8.727453639997991
+      },
+      {
+        "feature": "amt",
+        "importance": 8.518637186832656
+      },
+      {
+        "feature": "category_encoded",
+        "importance": 7.022399016872667
+      },
+      {
+        "feature": "te_city",
+        "importance": 6.861706438809702
+      },
+      {
+        "feature": "log_amt",
+        "importance": 6.250069151658499
+      },
+      {
+        "feature": "hour",
+        "importance": 3.892259894203376
+      },
+      {
+        "feature": "ix_amt_x_catfraud",
+        "importance": 3.4772972488178495
+      },
+      {
+        "feature": "ix_amtcat_x_isnight",
+        "importance": 3.073438863950126
+      }
+    ],
+    "clean_stack_no_te": {
+      "label": "Anthony 39 + Mark non-TE (14) = 53",
+      "features": [
+        "amt",
+        "gender",
+        "lat",
+        "long",
+        "city_pop",
+        "unix_time",
+        "merch_lat",
+        "merch_long",
+        "hour",
+        "day_of_week",
+        "month",
+        "is_weekend",
+        "age",
+        "distance_km",
+        "category_encoded",
+        "log_amt",
+        "is_night",
+        "vel_count_1h",
+        "vel_count_6h",
+        "vel_count_24h",
+        "vel_count_7d",
+        "vel_amt_1h",
+        "vel_amt_6h",
+        "vel_amt_24h",
+        "vel_amt_7d",
+        "amt_zscore",
+        "amt_ratio_to_mean",
+        "amt_card_mean",
+        "amt_card_std",
+        "amt_cat_zscore",
+        "log_time_since_last",
+        "log_avg_time_between",
+        "hour_deviation",
+        "log_dist_centroid",
+        "impossible_travel",
+        "cat_fraud_rate",
+        "card_cat_count",
+        "is_new_merchant",
+        "card_txn_number",
+        "merch_count_1h",
+        "merch_count_24h",
+        "merch_amt_24h",
+        "merch_fraud_rate",
+        "card_merch_count",
+        "log_time_since_last_merch",
+        "card_merch_amt_ratio",
+        "freq_merchant",
+        "freq_state",
+        "freq_city",
+        "ix_amt_x_catfraud",
+        "ix_vel24_x_amt",
+        "ix_amtcat_x_isnight",
+        "ix_amtcat_x_velcount24"
+      ],
+      "n_features": 53,
+      "auprc": 0.9811,
+      "roc_auc": 0.9998,
+      "f1": 0.8918,
+      "precision": 0.8264,
+      "recall": 0.9686,
+      "prec@95rec": 0.9243,
+      "train_s": 213.5
+    }
   }
 }

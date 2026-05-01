@@ -2896,5 +2896,107 @@
         "verdict": "HURTS"
       }
     ]
+  },
+  "anthony_phase4": {
+    "date": "2026-04-30",
+    "phase": 4,
+    "description": "Optuna tuning (100 trials) + threshold calibration + error analysis",
+    "baseline": {
+      "model": "CatBoost P3 default (39f)",
+      "auprc": 0.9824,
+      "roc_auc": 0.9998,
+      "f1": 0.9501,
+      "precision": 0.9691,
+      "recall": 0.9319,
+      "prec@95recall": 0.9404,
+      "train_time_s": 36.49
+    },
+    "tuned": {
+      "model": "CatBoost Optuna-tuned (39f)",
+      "auprc": 0.9819,
+      "roc_auc": 0.9998,
+      "f1": 0.9431,
+      "precision": 0.961,
+      "recall": 0.9258,
+      "prec@95recall": 0.9244,
+      "train_time_s": 23.17
+    },
+    "tuned_cost_opt": {
+      "model": "CatBoost tuned + cost-opt thresh",
+      "auprc": 0.9819,
+      "roc_auc": 0.9998,
+      "f1": 0.7951,
+      "precision": 0.6669,
+      "recall": 0.9843,
+      "prec@95recall": 0.9244,
+      "train_time_s": 23.17
+    },
+    "best_optuna_params": {
+      "depth": 7,
+      "iterations": 300,
+      "learning_rate": 0.112,
+      "l2_leaf_reg": 9.002,
+      "scale_pos_weight": 3.7669,
+      "border_count": 174,
+      "random_strength": 1.0092,
+      "bagging_temperature": 2.6304
+    },
+    "optuna_stats": {
+      "n_trials": 30,
+      "best_auprc": 0.9808,
+      "time_seconds": 909.1
+    },
+    "threshold_calibration": {
+      "youden_j": 0.0249,
+      "recall_95": 0.2944,
+      "cost_optimal": 0.04,
+      "cost_fn": 500.0,
+      "cost_fp": 10.0
+    },
+    "learning_curve": [
+      {
+        "fraction": 0.2,
+        "n_samples": 167772,
+        "n_fraud": 1492,
+        "auprc_train": 0.9994,
+        "auprc_test": 0.9436,
+        "gap": 0.0557,
+        "train_time_s": 4.9
+      },
+      {
+        "fraction": 0.4,
+        "n_samples": 335544,
+        "n_fraud": 2365,
+        "auprc_train": 0.9997,
+        "auprc_test": 0.9662,
+        "gap": 0.0335,
+        "train_time_s": 9.4
+      },
+      {
+        "fraction": 0.7,
+        "n_samples": 587202,
+        "n_fraud": 3420,
+        "auprc_train": 0.999,
+        "auprc_test": 0.9785,
+        "gap": 0.0205,
+        "train_time_s": 15.8
+      },
+      {
+        "fraction": 1.0,
+        "n_samples": 838860,
+        "n_fraud": 4861,
+        "auprc_train": 0.9978,
+        "auprc_test": 0.9819,
+        "gap": 0.016,
+        "train_time_s": 22.3
+      }
+    ],
+    "error_analysis": {
+      "tp": 1127,
+      "fp": 563,
+      "fn": 18,
+      "tn": 208007,
+      "total_cost_dollars": 14630
+    }
   }
 }

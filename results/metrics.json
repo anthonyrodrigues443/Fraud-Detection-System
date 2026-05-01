@@ -2839,5 +2839,164 @@
       "tn": 208007,
       "total_cost_dollars": 14630
     }
+  },
+  "anthony_phase5": {
+    "date": "2026-05-01",
+    "phase": 5,
+    "researcher": "Anthony Rodrigues",
+    "shap_top5": [
+      {
+        "feature": "amt_cat_zscore",
+        "mean_abs_shap": 2.864851715236705
+      },
+      {
+        "feature": "vel_amt_24h",
+        "mean_abs_shap": 2.7903601656757466
+      },
+      {
+        "feature": "amt",
+        "mean_abs_shap": 0.9173459930238056
+      },
+      {
+        "feature": "is_night",
+        "mean_abs_shap": 0.9065234786000084
+      },
+      {
+        "feature": "log_amt",
+        "mean_abs_shap": 0.8848226938146444
+      }
+    ],
+    "group_importance": [
+      {
+        "Group": "Baseline",
+        "n_features": 17,
+        "total_shap": 5.058,
+        "share": 33.0
+      },
+      {
+        "Group": "Velocity",
+        "n_features": 8,
+        "total_shap": 4.9042,
+        "share": 32.0
+      },
+      {
+        "Group": "Amount Dev",
+        "n_features": 5,
+        "total_shap": 3.5315,
+        "share": 23.0
+      },
+      {
+        "Group": "Temporal",
+        "n_features": 3,
+        "total_shap": 0.8452,
+        "share": 5.5
+      },
+      {
+        "Group": "Geographic",
+        "n_features": 2,
+        "total_shap": 0.0991,
+        "share": 0.6
+      },
+      {
+        "Group": "Category Risk",
+        "n_features": 4,
+        "total_shap": 0.9015,
+        "share": 5.9
+      }
+    ],
+    "isolation_forest": {
+      "auprc": 0.3429,
+      "f1": 0.3146,
+      "recall": 0.5319,
+      "precision": 0.2233
+    },
+    "hybrid_blend": [
+      {
+        "iso_weight": 0.0,
+        "auprc": 0.9824,
+        "delta_vs_cb": 0.0
+      },
+      {
+        "iso_weight": 0.05,
+        "auprc": 0.9786,
+        "delta_vs_cb": -0.0037
+      },
+      {
+        "iso_weight": 0.1,
+        "auprc": 0.9751,
+        "delta_vs_cb": -0.0073
+      },
+      {
+        "iso_weight": 0.15,
+        "auprc": 0.9716,
+        "delta_vs_cb": -0.0107
+      },
+      {
+        "iso_weight": 0.2,
+        "auprc": 0.969,
+        "delta_vs_cb": -0.0133
+      },
+      {
+        "iso_weight": 0.3,
+        "auprc": 0.9647,
+        "delta_vs_cb": -0.0177
+      },
+      {
+        "iso_weight": 0.5,
+        "auprc": 0.9494,
+        "delta_vs_cb": -0.0329
+      }
+    ],
+    "best_blend_weight": 0.0,
+    "ablation": [
+      {
+        "removed": "amt_cat_zscore",
+        "auprc": 0.9785,
+        "delta": -0.0038,
+        "verdict": "HURTS"
+      },
+      {
+        "removed": "vel_amt_24h",
+        "auprc": 0.9729,
+        "delta": -0.0095,
+        "verdict": "HURTS"
+      },
+      {
+        "removed": "amt",
+        "auprc": 0.982,
+        "delta": -0.0003,
+        "verdict": "NEUTRAL"
+      },
+      {
+        "removed": "is_night",
+        "auprc": 0.9823,
+        "delta": -0.0,
+        "verdict": "NEUTRAL"
+      },
+      {
+        "removed": "log_amt",
+        "auprc": 0.9816,
+        "delta": -0.0008,
+        "verdict": "NEUTRAL"
+      },
+      {
+        "removed": "category_encoded",
+        "auprc": 0.973,
+        "delta": -0.0093,
+        "verdict": "HURTS"
+      },
+      {
+        "removed": "cat_fraud_rate",
+        "auprc": 0.9849,
+        "delta": 0.0025,
+        "verdict": "HELPS"
+      },
+      {
+        "removed": "hour",
+        "auprc": 0.9738,
+        "delta": -0.0086,
+        "verdict": "HURTS"
+      }
+    ]
   }
 }

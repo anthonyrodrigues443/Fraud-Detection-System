@@ -9,9 +9,9 @@
 
 ## Current Status
 
-**Phase 3 complete.** Best model: **CatBoost + 22 behavioral features (39 total), temporal split, AUPRC = 0.9824**
+**Phase 5 complete.** Best AUPRC: **CatBoost + 22 behavioral features (39 total) — AUPRC = 0.9824**. Best production cost candidate: **simple-average ensemble (CB+XGB+LGB) on 53-feat stack — AUPRC = 0.9817, min expected cost $1,844**.
 
-Feature engineering delivered the largest single-phase lift in the project: +0.1060 AUPRC over Phase 2's CatBoost baseline. Per-card velocity features (1h/6h/24h/7d count + amount windows) account for 46% of that lift. Mark's complementary statistical-FE pass surfaced a critical methodological warning: Bayesian target encoding — the canonical 2001 fraud-detection feature — costs −0.49 AUPRC under temporal split at every smoothing α tested.
+Phase 5 closed the explainability and frontier-comparison loops. SHAP names `amt_cat_zscore` (category-level amount z-score) the #1 fraud signal (|SHAP|=2.86); group ablation confirms the Velocity family is load-bearing (-0.052 AUPRC, +$2,777 cost when removed). A simple uniform average of CatBoost + XGBoost + LightGBM beats every single learner *and* a LogReg-stacked meta — the saturated model tolerates only an arithmetic combiner. Calibration (Platt) lifts F1@0.5 from 0.906 → 0.934 but does NOT reduce expected dollar cost. CatBoost beats Claude Opus 4.6 on a stratified 50-sample LLM head-to-head: F1=1.000 vs 0.864, ~242,000× faster, 45,000× cheaper.
 
 ---
 
@@ -42,17 +42,22 @@ Feature engineering delivered the largest single-phase lift in the project: +0.1
 
 5. **Prec@95Recall tripled from 0.31 → 0.93 with behavioral features** — At the operationally important 95% recall threshold, false-alert rate dropped from 69% → 7%. This is the metric production fraud systems are measured on, and it moved more in Phase 3 (feature engineering) than in any prior model-family or imbalance-strategy change.
 
+6. **Specialist beats frontier LLM on every axis** — On a stratified 50-sample test, CatBoost achieves F1=1.000 while Claude Opus 4.6 lands at F1=0.864 and Claude Haiku 4.5 at F1=0.485. CatBoost is ~242,000× faster (0.1ms vs 24.2s) and 45,000× cheaper ($0.0001 vs $4.50 per 1k predictions). Opus is conservative — zero false positives but misses 24% of small-amount, late-evening frauds that CatBoost catches via velocity and z-score signals.
+
+7. **A simple uniform average beats a trainable meta-learner on a saturated model** — Uniform mean of CatBoost+XGBoost+LightGBM probabilities reaches AUPRC=0.9817 and min cost $1,844, beating every single booster *and* a LogReg-stacked meta (which overfit despite 125k calibration samples, degenerating to coefs CB=21.6/XGB=2.3/LGB=-2.6). Anthony's IsoForest-hybrid-weight=0 finding generalizes: any trainable combiner over a saturated CatBoost adds noise, not signal.
+
 ---
 
 ## Models Compared
 
-**52 experiments across 3 phases** (13 Phase 1, 14 Phase 2, 25 Phase 3):
+**Experiments span Phases 1–5** (Phase 1 baselines, Phase 2 imbalance, Phase 3 feature engineering, Phase 5 advanced techniques + LLM head-to-head):
 
 | Phase | Models / Strategies |
 |-------|---------------------|
 | 1 | Majority class, LogReg (default), LogReg (balanced), XGBoost (random), XGBoost (temporal), 4-rule engine, 4 single-rule baselines, GaussianNB, k-NN(5), IsolationForest |
 | 2 | XGBoost × 7 spw values (1, 5, 17.4, 87, 172, 350, 870), +SMOTE, +ADASYN, +Undersample, +SMOTE-Tomek, +threshold tuning (test-set), +OOF threshold, +Focal Loss |
 | 3 | CatBoost/XGBoost/RF baseline-vs-+22-behavioral, 5-group ablation (velocity, amount-deviation, temporal, geographic, category-merchant), stacking (LogReg meta + simple/weighted avg), Mark's 5 statistical groups (Bayesian TE, per-merchant velocity, card×merchant repeat, frequency encoding, multiplicative interactions), TE α-sweep (1/10/100/500/2000), 53-feat clean stack, LogReg on 59 features |
+| 5 | TreeSHAP explainability, Isolation Forest standalone + CatBoost hybrid weight sweep, per-category threshold optimization, single-feature ablation (top 8), 7-group feature-family ablation (Velocity / Baseline / Temporal / Geographic / Category / Mark-stat / AmountDev), CB+XGB+LGB simple-average + LogReg-stacked meta, isotonic + Platt calibration, LLM head-to-head (Claude Haiku 4.5, Claude Opus 4.6 — GPT-5.4 usage-limited) on stratified 50-sample test |
 
 ---
 
@@ -134,6 +139,34 @@ Feature engineering delivered the largest single-phase lift in the project: +0.1
 **Surprise:** Bayesian target encoding — invented in Micci-Barreca's 2001 paper *specifically for fraud detection* (ZIP/IP/SKU) — costs −0.49 AUPRC at every α tested. The cure (heavy smoothing) only "works" because it deletes the signal. Anthony's leak-free expanding `cat_fraud_rate` does the same job without the temporal-distribution-shift trap.<br><br>
 **Research:** Albahnsen et al. (2016) — per-card transaction-aggregation windows; Deotte/NVIDIA (2019) IEEE-CIS Kaggle 1st place — group-aggregation features beat model architecture; Micci-Barreca (2001) — invented target encoding (now shown to fail under temporal split); Araujo et al. (CMU SDM 2017) BreachRadar — per-merchant rolling counts.<br><br>
 **Best Model So Far:** CatBoost + 22 behavioral features (39 total), temporal split — AUPRC=0.9824, Prec@95Rec=0.9260
+
+</td>
+</tr>
+</table>
+
+---
+
+### Phase 5: Advanced Techniques + Explainability — 2026-05-01
+
+<table>
+<tr>
+<td valign="top" width="38%">
+
+**SHAP + IsoForest (Anthony):** TreeSHAP on CatBoost names `amt_cat_zscore` the #1 feature (|SHAP|=2.86), with velocity at #2 (vel_amt_24h=2.79). Group-level SHAP: Baseline 33.0%, Velocity 30.7%, Amount-Dev 24.8%, Geographic only 0.3%. Isolation Forest standalone AUPRC=0.3429 (2.9× worse than CatBoost); CatBoost+IsoForest hybrid finds optimal weight at 0.0 — unsupervised anomaly detection adds zero signal on labeled data. Per-category optimal thresholds vary 0.11 (entertainment) to 0.66 (misc_net).<br><br>
+**Stacking + LLM (Mark):** Group ablation confirms Velocity is load-bearing (-0.052 AUPRC, +$2,777 cost when dropped); Mark's 14 stat add-ons are redundant (+0.001 AUPRC, +$68 cost) — the 53-feat stack can be safely pruned to Anthony's 39-feat set. Simple uniform average of CB+XGB+LGB wins: AUPRC=0.9817, min cost $1,844 — beats every single learner *and* LogReg-stacked meta (which overfits with coefs CB=21.6 / XGB=2.3 / LGB=-2.6). Platt calibration lifts F1@0.5 by +3pp but raises cost by $80. LLM head-to-head on 50 stratified samples: CatBoost F1=1.000, Claude Opus 4.6 F1=0.864, Claude Haiku 4.5 F1=0.485 (codex/GPT-5.4 usage-limited).
+
+</td>
+<td align="center" width="24%">
+
+<img src="results/mark_phase5_llm_vs_catboost.png" width="220">
+
+</td>
+<td valign="top" width="38%">
+
+**Combined Insight:** Three independent angles converge on the same finding — the saturated CatBoost cannot be improved by *any* trainable combiner. Anthony's IsoForest hybrid weight collapsed to 0.0; Mark's LogReg meta over-weighted CatBoost (21.6) and inverted LightGBM (-2.6) without beating a uniform average. The frontier finding: an arithmetic mean of three decorrelated boosters is the only thing that beats single CatBoost, and CatBoost itself perfectly classifies the stratified 50-sample LLM benchmark while Opus misses 24% of frauds at 242,000× the latency.<br><br>
+**Surprise:** Calibration *hurts* expected dollar loss. Both isotonic and Platt cut Brier by 35-37% and ECE by 86-89%, and lift F1@0.5 from 0.906 → 0.934 — yet min expected cost rises from $2,192 to $2,272-$2,278. Calibration compresses the high-end of the score distribution, collapsing the cost-optimal threshold from 0.081 to 0.011. Calibration is deployment ergonomics (interpretable posteriors at thr=0.5), not a cost lever.<br><br>
+**Research:** Lundberg & Lee (2017, NeurIPS) — TreeSHAP exact Shapley values. Liu et al. (2008, ICDM) — Isolation Forest for unsupervised anomaly. Wolpert (1992) — original stacked generalization. Niculescu-Mizil & Caruana (2005, ICML) — isotonic dominates Platt for trees when N≥1k (we have 125k). Naeini et al. (2015, AAAI) — 20-bin ECE convention.<br><br>
+**Best Model So Far:** AUPRC champion: CatBoost + 39 features — AUPRC=0.9824, Prec@95Rec=0.9260. Cost champion (Phase 6 production candidate): simple-average ensemble (CB+XGB+LGB) on 53-feat — AUPRC=0.9817, min expected cost $1,844 (-12.5% vs Phase 4 single CatBoost).
 
 </td>
 </tr>

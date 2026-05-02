@@ -9,9 +9,9 @@
 
 ## Current Status
 
-**Phase 5 complete.** Best AUPRC: **CatBoost + 22 behavioral features (39 total) — AUPRC = 0.9824**. Best production cost candidate: **simple-average ensemble (CB+XGB+LGB) on 53-feat stack — AUPRC = 0.9817, min expected cost $1,844**.
+**Phase 6 complete.** Best AUPRC unchanged: **CatBoost + 22 behavioral features (39 total) — AUPRC = 0.9824**. Best production cost candidate: **simple-average ensemble (CB+XGB+LGB) on 53-feat stack — AUPRC = 0.9817, min expected cost $1,844**.
 
-Phase 5 closed the explainability and frontier-comparison loops. SHAP names `amt_cat_zscore` (category-level amount z-score) the #1 fraud signal (|SHAP|=2.86); group ablation confirms the Velocity family is load-bearing (-0.052 AUPRC, +$2,777 cost when removed). A simple uniform average of CatBoost + XGBoost + LightGBM beats every single learner *and* a LogReg-stacked meta — the saturated model tolerates only an arithmetic combiner. Calibration (Platt) lifts F1@0.5 from 0.906 → 0.934 but does NOT reduce expected dollar cost. CatBoost beats Claude Opus 4.6 on a stratified 50-sample LLM head-to-head: F1=1.000 vs 0.864, ~242,000× faster, 45,000× cheaper.
+Phase 6 went deep on model understanding: SHAP interaction values, fraud subtype profiling, LIME case studies, temporal-stability checks, counterfactual analysis, and FN/FP forensics. `amt_cat_zscore` is a hub feature appearing in ALL top 5 SHAP interactions — it doesn't work alone, it conditions on category identity and amount magnitude. Feature importance is rock-solid stable across 3 monthly windows (Spearman ρ > 0.986), supporting deployment without continuous retraining. The headline risk: 85.5% of caught fraud can be flipped by changing just 1 feature to the legitimate median — a single-point-of-failure vulnerability. Missed fraud is the inverse pattern: $49 median amount with NEGATIVE `amt_cat_zscore` (-0.07), blending into normal spending behavior.
 
 ---
 
@@ -36,21 +36,21 @@ Phase 5 closed the explainability and frontier-comparison loops. SHAP names `amt
 
 2. **Behavioral feature engineering > model architecture** — Adding 22 behavioral features (velocity, amount z-score, temporal, geographic, category-merchant) to Phase 2's CatBoost lifts AUPRC from 0.8764 → 0.9824 (+0.1060). This is 3× larger than the model-family lift in Phase 2 (CatBoost vs XGBoost: +0.0342). Per-card velocity windows (1h/6h/24h/7d) alone account for 46% of the lift.
 
-3. **The textbook `scale_pos_weight` heuristic is wrong by 35×** — The standard N_neg/N_pos formula gives spw=172. But the AUPRC-optimal value is **spw=5**, gaining +0.029 AUPRC. The relationship is non-monotonic: spw=87 falls into a local minimum *below* spw=172.
+3. **Every target-aware feature technique fails on temporal split** — SMOTE, ADASYN, and Bayesian target encoding all finish in the bottom of their respective ablations. TE costs −0.4883 AUPRC at α=100 and never recovers above 0.84 across α∈{1,10,100,500,2000}. Target-aware techniques memorize training-period base rates that don't transfer; structural encodings (frequency counts, log transforms) survive.
 
-4. **Every target-aware feature technique fails on temporal split** — SMOTE, ADASYN, and Bayesian target encoding all finish in the bottom of their respective ablations. TE costs −0.4883 AUPRC at α=100 and never recovers above 0.84 across α∈{1,10,100,500,2000}. Target-aware techniques memorize training-period base rates that don't transfer; structural encodings (frequency counts, log transforms) survive.
+4. **Specialist beats frontier LLM on every axis** — On a stratified 50-sample test, CatBoost achieves F1=1.000 while Claude Opus 4.6 lands at F1=0.864 and Claude Haiku 4.5 at F1=0.485. CatBoost is ~242,000× faster (0.1ms vs 24.2s) and 45,000× cheaper ($0.0001 vs $4.50 per 1k predictions). Opus is conservative — zero false positives but misses 24% of small-amount, late-evening frauds that CatBoost catches via velocity and z-score signals.
 
-5. **Prec@95Recall tripled from 0.31 → 0.93 with behavioral features** — At the operationally important 95% recall threshold, false-alert rate dropped from 69% → 7%. This is the metric production fraud systems are measured on, and it moved more in Phase 3 (feature engineering) than in any prior model-family or imbalance-strategy change.
+5. **A simple uniform average beats a trainable meta-learner on a saturated model** — Uniform mean of CatBoost+XGBoost+LightGBM probabilities reaches AUPRC=0.9817 and min cost $1,844, beating every single booster *and* a LogReg-stacked meta (which overfit despite 125k calibration samples, degenerating to coefs CB=21.6/XGB=2.3/LGB=-2.6). Anthony's IsoForest-hybrid-weight=0 finding generalizes: any trainable combiner over a saturated CatBoost adds noise, not signal.
 
-6. **Specialist beats frontier LLM on every axis** — On a stratified 50-sample test, CatBoost achieves F1=1.000 while Claude Opus 4.6 lands at F1=0.864 and Claude Haiku 4.5 at F1=0.485. CatBoost is ~242,000× faster (0.1ms vs 24.2s) and 45,000× cheaper ($0.0001 vs $4.50 per 1k predictions). Opus is conservative — zero false positives but misses 24% of small-amount, late-evening frauds that CatBoost catches via velocity and z-score signals.
+6. **85.5% of caught fraud can be hidden by changing just 1 feature** — Counterfactual analysis on 200 true-positive frauds: setting only the top-SHAP feature to the legitimate median flips 85.5% of predictions below 0.5; 12.5% need 2 features, 2% need 3. The model relies on a single dominant signal per transaction. Production should require multi-signal thresholds, not a single high-confidence score.
 
-7. **A simple uniform average beats a trainable meta-learner on a saturated model** — Uniform mean of CatBoost+XGBoost+LightGBM probabilities reaches AUPRC=0.9817 and min cost $1,844, beating every single booster *and* a LogReg-stacked meta (which overfit despite 125k calibration samples, degenerating to coefs CB=21.6/XGB=2.3/LGB=-2.6). Anthony's IsoForest-hybrid-weight=0 finding generalizes: any trainable combiner over a saturated CatBoost adds noise, not signal.
+7. **Feature importance is rock-solid stable across 3 monthly windows** — Spearman rank correlation of per-window SHAP rankings: ρ=0.992 (W1↔W2), 0.987 (W1↔W3), 0.994 (W2↔W3). No concept drift in the test horizon, supporting deployment without continuous retraining. `amt_cat_zscore` is also a hub node in SHAP interactions — it appears in ALL top 5 interaction pairs (with `cat_fraud_rate`, `log_amt`, `category_encoded`, `amt`, `amt_ratio_to_mean`).
 
 ---
 
 ## Models Compared
 
-**Experiments span Phases 1–5** (Phase 1 baselines, Phase 2 imbalance, Phase 3 feature engineering, Phase 5 advanced techniques + LLM head-to-head):
+**Experiments span Phases 1–6** (Phase 1 baselines, Phase 2 imbalance, Phase 3 feature engineering, Phase 5 advanced techniques + LLM head-to-head, Phase 6 deep explainability):
 
 | Phase | Models / Strategies |
 |-------|---------------------|
@@ -58,6 +58,7 @@ Phase 5 closed the explainability and frontier-comparison loops. SHAP names `amt
 | 2 | XGBoost × 7 spw values (1, 5, 17.4, 87, 172, 350, 870), +SMOTE, +ADASYN, +Undersample, +SMOTE-Tomek, +threshold tuning (test-set), +OOF threshold, +Focal Loss |
 | 3 | CatBoost/XGBoost/RF baseline-vs-+22-behavioral, 5-group ablation (velocity, amount-deviation, temporal, geographic, category-merchant), stacking (LogReg meta + simple/weighted avg), Mark's 5 statistical groups (Bayesian TE, per-merchant velocity, card×merchant repeat, frequency encoding, multiplicative interactions), TE α-sweep (1/10/100/500/2000), 53-feat clean stack, LogReg on 59 features |
 | 5 | TreeSHAP explainability, Isolation Forest standalone + CatBoost hybrid weight sweep, per-category threshold optimization, single-feature ablation (top 8), 7-group feature-family ablation (Velocity / Baseline / Temporal / Geographic / Category / Mark-stat / AmountDev), CB+XGB+LGB simple-average + LogReg-stacked meta, isotonic + Platt calibration, LLM head-to-head (Claude Haiku 4.5, Claude Opus 4.6 — GPT-5.4 usage-limited) on stratified 50-sample test |
+| 6 | TreeSHAP interaction values (39×39 matrix on 500 stratified samples), fraud subtype profiling (high/low amount × night/day × new/repeat merchant), LIME local explanations on 3 case studies (borderline TP, near-miss FN, confident FP), temporal-stability Spearman correlation across 3 monthly windows, greedy counterfactual analysis on 200 TPs, FN/FP/TP/TN feature-median forensics |
 
 ---
 
@@ -167,6 +168,33 @@ Phase 5 closed the explainability and frontier-comparison loops. SHAP names `amt
 **Surprise:** Calibration *hurts* expected dollar loss. Both isotonic and Platt cut Brier by 35-37% and ECE by 86-89%, and lift F1@0.5 from 0.906 → 0.934 — yet min expected cost rises from $2,192 to $2,272-$2,278. Calibration compresses the high-end of the score distribution, collapsing the cost-optimal threshold from 0.081 to 0.011. Calibration is deployment ergonomics (interpretable posteriors at thr=0.5), not a cost lever.<br><br>
 **Research:** Lundberg & Lee (2017, NeurIPS) — TreeSHAP exact Shapley values. Liu et al. (2008, ICDM) — Isolation Forest for unsupervised anomaly. Wolpert (1992) — original stacked generalization. Niculescu-Mizil & Caruana (2005, ICML) — isotonic dominates Platt for trees when N≥1k (we have 125k). Naeini et al. (2015, AAAI) — 20-bin ECE convention.<br><br>
 **Best Model So Far:** AUPRC champion: CatBoost + 39 features — AUPRC=0.9824, Prec@95Rec=0.9260. Cost champion (Phase 6 production candidate): simple-average ensemble (CB+XGB+LGB) on 53-feat — AUPRC=0.9817, min expected cost $1,844 (-12.5% vs Phase 4 single CatBoost).
+
+</td>
+</tr>
+</table>
+
+---
+
+### Phase 6: Deep Explainability & Model Understanding — 2026-05-02
+
+<table>
+<tr>
+<td valign="top" width="38%">
+
+**Explainability Run (Anthony):** Six diagnostics on the AUPRC champion (CatBoost + 39 features, AUPRC=0.9824) — TreeSHAP interaction values, fraud subtype profiling, LIME case studies, temporal stability, counterfactual analysis, and FN/FP forensics. SHAP interaction matrix (39×39 on 500 stratified samples): `amt_cat_zscore` is a hub node — it appears in ALL top 5 interaction pairs (strongest with `cat_fraud_rate` = 0.422). Counterfactual on 200 TPs: setting just 1 feature to the legitimate median flips 85.5% of fraud predictions below 0.5; 12.5% need 2 features, 2% need 3. Temporal stability is exceptional — Spearman ρ on per-window SHAP rankings is 0.992 / 0.987 / 0.994 across three monthly windows.
+
+</td>
+<td align="center" width="24%">
+
+<img src="results/phase6_anthony_counterfactual.png" width="220">
+
+</td>
+<td valign="top" width="38%">
+
+**Combined Insight:** The same `amt_cat_zscore` finding from Phase 5 (top global SHAP) generalizes in two ways: it's the connective tissue of the model's reasoning (hub of all top interactions, dominates every fraud subtype with 1.7× higher reliance on high-amount fraud), AND it's the model's load-bearing weakness (85.5% of caught fraud is one-feature-flippable). The model has converged on a single dominant signal — strong when the signal fires, brittle when an adversary normalizes it.<br><br>
+**Surprise:** Missed fraud (FN) has *negative* `amt_cat_zscore` (-0.07) and 1.9× HIGHER 24h velocity than caught fraud (1531 vs 812 transactions), but with $49 median amounts vs $733 for TPs. The blind spot isn't slow or low-volume — it's high-frequency, low-amount "blend-in" fraud that matches the stolen card's normal spending pattern. Also surprising: SHAP and LIME agree only 20-40% on individual cases despite agreeing globally.<br><br>
+**Research:** Kong et al. (2024, CFTNet) — counterfactual XAI for fraud, "what minimum changes flip the prediction?". CEUR-WS Vol-4059 (2024) — temporal-stability metrics on SHAP attributions detect concept drift before AUPRC degrades. Lundberg et al. (2020) — TreeSHAP exact interaction values. Springer LNCS (2024) — SHAP vs LIME on tabular fraud: SHAP global, LIME local.<br><br>
+**Best Model So Far:** Unchanged from Phase 5. AUPRC champion: CatBoost + 39 features — AUPRC=0.9824, Prec@95Rec=0.9260. Cost champion: simple-average ensemble (CB+XGB+LGB) on 53-feat — AUPRC=0.9817, min expected cost $1,844. Phase 6 added no model lift but produced two production-critical diagnostics: 1) the model is safe to deploy without continuous retraining (ρ>0.986 across 3 months), 2) the model needs a multi-signal threshold to defend against single-feature counterfactual evasion.
 
 </td>
 </tr>

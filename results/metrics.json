@@ -3422,5 +3422,209 @@
       "cost_at_optimal_dollars": 1705.0299682617188,
       "cost_savings_dollars": 10523.199523925781
     }
+  },
+  "anthony_phase6": {
+    "date": "2026-05-02",
+    "phase": 6,
+    "researcher": "Anthony Rodrigues",
+    "champion_auprc": 0.9431,
+    "experiment_6_1_interactions": {
+      "top_5_interactions": [
+        {
+          "feature_1": "amt_cat_zscore",
+          "feature_2": "cat_fraud_rate",
+          "mean_abs_interaction": 0.4221
+        },
+        {
+          "feature_1": "log_amt",
+          "feature_2": "amt_cat_zscore",
+          "mean_abs_interaction": 0.4122
+        },
+        {
+          "feature_1": "category_encoded",
+          "feature_2": "amt_cat_zscore",
+          "mean_abs_interaction": 0.3383
+        },
+        {
+          "feature_1": "amt",
+          "feature_2": "amt_cat_zscore",
+          "mean_abs_interaction": 0.3184
+        },
+        {
+          "feature_1": "amt_ratio_to_mean",
+          "feature_2": "amt_cat_zscore",
+          "mean_abs_interaction": 0.214
+        }
+      ],
+      "n_samples": 500
+    },
+    "experiment_6_2_subtypes": {
+      "subtype_profiles": {
+        "high_amount": {
+          "amt_cat_zscore": 4.7875,
+          "amt": 2.6466,
+          "is_night": 1.087,
+          "vel_amt_1h": 0.7664,
+          "vel_count_1h": 0.9672,
+          "category_encoded": 0.3476,
+          "cat_fraud_rate": 0.6938,
+          "log_amt": 1.7876,
+          "hour": 1.3158,
+          "log_time_since_last": 0.6684
+        },
+        "low_amount": {
+          "amt_cat_zscore": 2.7923,
+          "amt": 1.4141,
+          "is_night": 1.2841,
+          "vel_amt_1h": 0.904,
+          "vel_count_1h": 0.8578,
+          "category_encoded": 1.1,
+          "cat_fraud_rate": 0.7494,
+          "log_amt": 0.8495,
+          "hour": 0.8175,
+          "log_time_since_last": 0.5937
+        },
+        "night": {
+          "amt_cat_zscore": 4.7822,
+          "amt": 1.9862,
+          "is_night": 1.2434,
+          "vel_amt_1h": 0.7823,
+          "vel_count_1h": 0.9069,
+          "category_encoded": 0.8701,
+          "cat_fraud_rate": 0.7588,
+          "log_amt": 1.3328,
+          "hour": 0.9347,
+          "log_time_since_last": 0.6383
+        },
+        "day": {
+          "amt_cat_zscore": 4.4483,
+          "amt": 2.0807,
+          "is_night": 0.6119,
+          "vel_amt_1h": 0.6945,
+          "vel_count_1h": 0.8117,
+          "category_encoded": 0.7537,
+          "cat_fraud_rate": 0.7416,
+          "log_amt": 1.3339,
+          "hour": 0.6932,
+          "log_time_since_last": 0.4206
+        },
+        "new_merchant": {
+          "amt_cat_zscore": 4.6503,
+          "amt": 2.0596,
+          "is_night": 1.1405,
+          "vel_amt_1h": 0.7583,
+          "vel_count_1h": 1.0004,
+          "category_encoded": 0.7653,
+          "cat_fraud_rate": 0.8066,
+          "log_amt": 1.4116,
+          "hour": 1.0253,
+          "log_time_since_last": 0.656
+        },
+        "repeat_merchant": {
+          "amt_cat_zscore": 4.7834,
+          "amt": 1.9685,
+          "is_night": 1.1752,
+          "vel_amt_1h": 0.7775,
+          "vel_count_1h": 0.8442,
+          "category_encoded": 0.8989,
+          "cat_fraud_rate": 0.7327,
+          "log_amt": 1.2951,
+          "hour": 0.8461,
+          "log_time_since_last": 0.5893
+        }
+      }
+    },
+    "experiment_6_3_lime": {
+      "cases_analyzed": [
+        "Borderline TP (barely caught)",
+        "Near-miss FN (almost caught)",
+        "Confident FP (strong false alarm)"
+      ]
+    },
+    "experiment_6_4_temporal_stability": {
+      "windows": [
+        {
+          "name": "W1 (2019-12-13 to 2020-01-11)",
+          "n_total": "102600",
+          "n_fraud": "471"
+        },
+        {
+          "name": "W2 (2020-01-11 to 2020-02-09)",
+          "n_total": "50150",
+          "n_fraud": "330"
+        },
+        {
+          "name": "W3 (2020-02-09 to 2020-03-11)",
+          "n_total": "56965",
+          "n_fraud": "344"
+        }
+      ]
+    },
+    "experiment_6_5_counterfactual": {
+      "n_analyzed": 200,
+      "median_features_to_flip": 1.0,
+      "mean_features_to_flip": 1.16,
+      "distribution": {
+        "1": 171,
+        "2": 25,
+        "3": 4
+      }
+    },
+    "experiment_6_6_domain_validation": [
+      {
+        "feature": "amt_cat_zscore",
+        "shap_rank": 1,
+        "shap_val": 2.167,
+        "domain_meaning": "Unusual amount for this merchant category",
+        "literature_support": "Albahnsen et al. (2016): per-category anomaly scoring is standard in production fraud systems",
+        "validation": "STRONG \u2014 directly models what fraud analysts call \"amount anomaly by category\""
+      },
+      {
+        "feature": "vel_amt_24h",
+        "shap_rank": 2,
+        "shap_val": 1.036,
+        "domain_meaning": "Total spend in last 24h for this card",
+        "literature_support": "Kaggle IEEE-CIS 2019 winners: velocity features were #1 feature group",
+        "validation": "STRONG \u2014 velocity is the single most reliable fraud signal in production"
+      },
+      {
+        "feature": "amt",
+        "shap_rank": 3,
+        "shap_val": 0.922,
+        "domain_meaning": "Raw transaction amount",
+        "literature_support": "Basic fraud heuristic: higher amounts attract more fraud (higher payoff)",
+        "validation": "EXPECTED \u2014 amount is the simplest fraud signal, present in all systems"
+      },
+      {
+        "feature": "is_night",
+        "shap_rank": 4,
+        "shap_val": 0.813,
+        "domain_meaning": "Transaction between 10pm-5am",
+        "literature_support": "Whitrow et al. (2009): temporal patterns are top-3 fraud predictors",
+        "validation": "STRONG \u2014 night transactions have 35x higher fraud rate in this dataset"
+      },
+      {
+        "feature": "cat_fraud_rate",
+        "shap_rank": 7,
+        "shap_val": 0.732,
+        "domain_meaning": "Historical fraud rate for this merchant category",
+        "literature_support": "Industry practice: MCCs (Merchant Category Codes) have risk tiers",
+        "validation": "MODERATE \u2014 captures base rate but may encode label leakage if not properly time-lagged"
+      },
+      {
+        "feature": "impossible_travel",
+        "shap_rank": 37,
+        "shap_val": 0.001,
+        "domain_meaning": "Speed between consecutive transactions exceeds 900km/h",
+        "literature_support": "Classic fraud rule: impossible travel detection is standard",
+        "validation": "WEAK \u2014 theoretically strong but this dataset may not model geography realistically"
+      }
+    ],
+    "confusion_matrix_counts": {
+      "TP": 949,
+      "FN": 196,
+      "FP": 52,
+      "TN": 208518
+    }
   }
 }

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "fraud-streamlit",
+      "runtimeExecutable": "streamlit",
+      "runtimeArgs": ["run", "app.py", "--server.port", "8517", "--server.headless", "true"],
+      "port": 8517
+    }
+  ]
+}

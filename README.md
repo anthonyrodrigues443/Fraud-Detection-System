@@ -9,9 +9,9 @@
 
 ## Current Status
 
-**Phase 6 complete.** Best AUPRC unchanged: **CatBoost + 22 behavioral features (39 total) — AUPRC = 0.9824**. Best production cost candidate: **simple-average ensemble (CB+XGB+LGB) on 53-feat stack — AUPRC = 0.9817, min expected cost $1,844**.
+**Phase 7 complete — project shipped.** Production ensemble: **mean(CatBoost + XGBoost + LightGBM) on 53 features — AUPRC = 0.9840, min expected cost $1,705**. 46 tests pass. Streamlit UI live. Model card, experiment log, and all research reports finalized.
 
-Phase 6 went deep on model understanding: SHAP interaction values, fraud subtype profiling, LIME case studies, temporal-stability checks, counterfactual analysis, and FN/FP forensics. `amt_cat_zscore` is a hub feature appearing in ALL top 5 SHAP interactions — it doesn't work alone, it conditions on category identity and amount magnitude. Feature importance is rock-solid stable across 3 monthly windows (Spearman ρ > 0.986), supporting deployment without continuous retraining. The headline risk: 85.5% of caught fraud can be flipped by changing just 1 feature to the legitimate median — a single-point-of-failure vulnerability. Missed fraud is the inverse pattern: $49 median amount with NEGATIVE `amt_cat_zscore` (-0.07), blending into normal spending behavior.
+The 7-day sprint produced 7 key findings, 50+ experiments across 6 model families, and a production pipeline that beats Claude Opus 4.6 on F1 (1.000 vs 0.864), latency (0.1ms vs 24.2s), and cost ($0.0001 vs $4.50 per 1k predictions).
 
 ---
 
@@ -26,7 +26,7 @@ Phase 6 went deep on model understanding: SHAP interaction values, fraud subtype
 | Date range | 2019-01-01 to 2020-03-10 (434 days) |
 | Unique cards | 943 (avg 1,112 txns/card; 63% of cards have at least one fraud) |
 | Train / Test (temporal) | 838,860 / 209,715 (cutoff 2019-12-13) |
-| Features | 17 engineered (temporal, geographic, amount, demographic, category) |
+| Features | 53 engineered (17 baseline + 22 behavioral + 14 statistical) |
 
 ---
 
@@ -147,6 +147,33 @@ Phase 6 went deep on model understanding: SHAP interaction values, fraud subtype
 
 ---
 
+### Phase 4: Hyperparameter Tuning + Error Analysis — 2026-04-30
+
+<table>
+<tr>
+<td valign="top" width="38%">
+
+**Tuning Run (Anthony):** 30-trial Optuna on 39-feature CatBoost: AUPRC went from 0.9824 to 0.9819 (-0.0005). Tuning is counterproductive on a saturated model. Threshold calibration (cost-optimal at 0.04) is the real production lever: catches 98.4% of fraud vs 92.6% at default 0.5. Learning curves show near-saturation (gap=0.016 at 100% data).<br><br>
+**Error Analysis:** FN profiling reveals missed fraud is low-amount ($49 median), negative `amt_cat_zscore`, high 24h velocity (1531 txns). These are "blend-in" transactions that match the card's normal spending pattern.
+
+</td>
+<td align="center" width="24%">
+
+<img src="results/phase4_threshold_calibration.png" width="220">
+
+</td>
+<td valign="top" width="38%">
+
+**Combined Insight:** Both Anthony (-0.0005 on 39f) and Mark (+0.0016 on 53f) independently confirm that Optuna tuning is counterproductive on this saturated model. The default CatBoost hyperparameters are already at the dataset's information ceiling. The real production lever is threshold calibration: moving from 0.5 to 0.04 catches 6% more fraud at the cost of more analyst reviews.<br><br>
+**Surprise:** Cost-optimal threshold (0.04) is far below 0.5, meaning the model is over-confident on many fraud transactions. The model "knows" they're fraud (prob > 0.04) but not with high enough confidence for the default 0.5 cutoff. Operating at 0.04 catches nearly all fraud but requires analyst bandwidth to handle the increased alert volume.<br><br>
+**Best Model So Far:** CatBoost + 39 features, temporal split — AUPRC=0.9824, Prec@95Rec=0.9404 (unchanged from Phase 3)
+
+</td>
+</tr>
+</table>
+
+---
+
 ### Phase 5: Advanced Techniques + Explainability — 2026-05-01
 
 <table>
@@ -199,3 +226,169 @@ Phase 6 went deep on model understanding: SHAP interaction values, fraud subtype
 </td>
 </tr>
 </table>
+
+---
+
+### Phase 7: Testing + README + Polish — 2026-05-03
+
+<table>
+<tr>
+<td valign="top" width="38%">
+
+**Test Suite (Anthony):** Expanded the test suite from 14 tests (Mark's Phase 6 data pipeline + predict tests) to 46 tests across 4 files. New `test_train_production.py` (17 tests) validates all model artifacts exist, feature columns match the canonical order, threshold logic is consistent, production metrics meet quality floors (AUPRC≥0.97, AUROC≥0.99, F1≥0.90), and the ensemble beats every individual learner on expected cost. New `test_inference_e2e.py` (11 tests) covers determinism, batch-vs-single agreement, alert flag logic, PredictionResult serialization, edge cases (extreme/negative values), and verifies that the ensemble probability is the arithmetic mean of three base learners.<br><br>
+**README + Polish (Anthony):** Comprehensive README with architecture diagram, all 7 key findings, iteration summaries for all 7 phases, setup instructions, and project structure. Consolidated experiment log covers every experiment from both researchers across the full sprint.
+
+</td>
+<td align="center" width="24%">
+
+46 tests, 4 files, 1.8s
+
+</td>
+<td valign="top" width="38%">
+
+**Combined Insight:** The test suite now encodes the project's key invariants as regression guardrails. The AUPRC≥0.97 floor, the ensemble-beats-individuals cost check, and the 53-feature canonical order are all tested. Any future change that degrades the production model below these floors, breaks the feature contract, or changes the threshold logic will fail CI before it ships.<br><br>
+**Final Metrics (production ensemble, n=209,715 test):**
+
+| Model | AUPRC | AUROC | F1@0.5 | Min Cost |
+|-------|------:|------:|-------:|---------:|
+| Ensemble (avg) | 0.9840 | 0.9998 | 0.946 | $1,705 |
+| XGBoost | 0.9828 | 0.9998 | 0.944 | $1,850 |
+| LightGBM | 0.9787 | 0.9994 | 0.941 | $2,948 |
+| CatBoost | 0.9781 | 0.9997 | 0.880 | $2,088 |
+
+**Project complete.** 7 phases, 50+ experiments, 7 key findings, 46 tests, production ensemble deployed with Streamlit UI.
+
+</td>
+</tr>
+</table>
+
+---
+
+## Architecture
+
+```mermaid
+graph TD
+    subgraph Data Pipeline
+        A[Raw HuggingFace Dataset<br/>1.05M transactions] --> B[Temporal Split<br/>80/20 at 2019-12-13]
+        B --> C[Feature Engineering<br/>53 features: baseline + velocity + amount-dev + temporal + geographic + category + merchant + interactions + freq]
+        C --> D[Frequency Encoding<br/>merchant/state/city counts<br/>fit on train only]
+    end
+
+    subgraph Training
+        D --> E[CatBoost<br/>600 iter, depth=6, balanced]
+        D --> F[XGBoost<br/>400 iter, depth=6, spw=ratio]
+        D --> G[LightGBM<br/>400 iter, 63 leaves, spw=ratio]
+    end
+
+    subgraph Inference
+        E --> H[Simple Average Ensemble<br/>p = mean CB, XGB, LGB]
+        F --> H
+        G --> H
+        H --> I{p >= threshold?}
+        I -->|Yes| J[FRAUD ALERT]
+        I -->|No| K[LEGIT]
+    end
+
+    subgraph Explainability
+        E --> L[TreeSHAP<br/>Global + Interaction]
+        L --> M[Top-K Features<br/>per transaction]
+    end
+
+    style H fill:#2E86AB,color:white
+    style J fill:#E63946,color:white
+    style K fill:#2A9D8F,color:white
+```
+
+---
+
+## Quick Start
+
+```bash
+# Clone and setup
+git clone https://github.com/anthonyrodrigues443/Fraud-Detection-System.git
+cd Fraud-Detection-System
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+# Train production ensemble (uses cached models if they exist)
+python src/train_production.py
+
+# Run tests (46 tests, ~2s)
+PYTHONPATH=src pytest tests/ -v
+
+# Launch Streamlit UI
+streamlit run app.py
+
+# Benchmark inference latency
+python src/benchmark_latency.py
+```
+
+---
+
+## Project Structure
+
+```
+Fraud-Detection-System/
+├── README.md
+├── requirements.txt
+├── .gitignore
+├── app.py                              # Streamlit production demo
+├── src/
+│   ├── data_pipeline.py                # Feature materialization + freq encoding
+│   ├── train_production.py             # Train CB + XGB + LGB ensemble
+│   ├── predict.py                      # FraudDetector inference wrapper
+│   └── benchmark_latency.py            # Latency profiling (p50/p95/p99)
+├── models/
+│   ├── cb.cbm                          # CatBoost model
+│   ├── xgb.json                        # XGBoost model
+│   ├── lgb.txt                         # LightGBM model
+│   ├── freq_encoders.json              # Frequency encoder maps
+│   ├── feature_cols.json               # Canonical 53-column order
+│   ├── threshold.json                  # Cost-optimal + default thresholds
+│   ├── production_metrics.json         # Full test-set evaluation
+│   └── model_card.md                   # Model card (HF/Google format)
+├── notebooks/
+│   ├── phase1_eda_baseline.ipynb       # Phase 1: EDA + baselines
+│   ├── phase2_model_comparison.ipynb   # Phase 2: 6 model families + 3 ensembles
+│   ├── phase3_feature_engineering.ipynb # Phase 3: 22 behavioral features + ablation
+│   ├── phase4_tuning_error_analysis.ipynb  # Phase 4: Optuna + error analysis
+│   ├── phase5_advanced_llm.ipynb       # Phase 5: SHAP + IsoForest + LLM comparison
+│   └── phase6_anthony_explainability.ipynb # Phase 6: Interaction SHAP + counterfactual
+├── results/                            # All plots, metrics, experiment artifacts
+├── reports/                            # Daily research reports (day1-day7)
+├── tests/
+│   ├── test_data_pipeline.py           # 8 tests: feature pipeline + encoders
+│   ├── test_predict.py                 # 6 tests: FraudDetector predict_one/batch
+│   ├── test_train_production.py        # 17 tests: artifacts, metrics floors, thresholds
+│   └── test_inference_e2e.py           # 11 tests: determinism, edge cases, serialization
+└── data/
+    ├── raw/                            # Original HuggingFace download
+    └── processed/                      # Feature-engineered parquet
+```
+
+---
+
+## Limitations & Future Work
+
+1. **Simulated dataset.** Sparkov is Markov-chain-generated; geographic signals are unrealistic (0.3% SHAP importance). Real-world deployment would require re-training on actual transaction data with legitimate geographic patterns.
+2. **Model saturation.** Phase 4 Optuna tuning was counterproductive (-0.0005 AUPRC). The model has reached the dataset's information ceiling. More data (not more tuning) is the path to further improvement.
+3. **Single-feature adversarial vulnerability.** 85.5% of caught fraud can be hidden by normalizing one feature to the legitimate median. Production systems should require multi-signal agreement before clearing a transaction.
+4. **GPT-5.4 comparison incomplete.** The Phase 5 codex run hit OpenAI usage limits. A re-run would complete the frontier LLM comparison table.
+5. **Calibration vs cost trade-off.** Platt/isotonic calibration improves Brier and ECE but raises expected dollar loss by ~$80. The ensemble ships uncalibrated; operators needing interpretable posteriors should apply Platt scaling post-hoc.
+
+---
+
+## References
+
+- Davis & Goadrich (2006) — AUPRC as primary metric for imbalanced classification
+- Hassan & Wei (2025, arxiv:2506.02703) — temporal split vs random split leakage
+- Albahnsen et al. (2016) — per-card transaction-aggregation windows for fraud
+- Deotte/NVIDIA (2019) IEEE-CIS Kaggle 1st place — feature engineering > model architecture
+- Micci-Barreca (2001) — Bayesian target encoding (shown to fail on temporal split)
+- Araujo et al. (CMU SDM 2017) BreachRadar — per-merchant rolling counts
+- Lundberg & Lee (2017, NeurIPS) — TreeSHAP exact Shapley values
+- Liu et al. (2008, ICDM) — Isolation Forest for unsupervised anomaly detection
+- Wolpert (1992) — stacked generalization
+- Niculescu-Mizil & Caruana (2005, ICML) — isotonic vs Platt calibration for trees
+- Kong et al. (2024, CFTNet) — counterfactual XAI for fraud detection
+- Lundberg et al. (2020) — TreeSHAP exact interaction values

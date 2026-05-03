@@ -44,7 +44,7 @@ def test_model_artifact_exists(filename):
 def test_model_card_exists():
     card = MODELS / "model_card.md"
     assert card.exists()
-    text = card.read_text()
+    text = card.read_text(encoding="utf-8")
     for section in ("Model overview", "Intended use", "Training data",
                     "Performance", "Limitations", "Ethical considerations"):
         assert section.lower() in text.lower(), f"Model card missing section: {section}"

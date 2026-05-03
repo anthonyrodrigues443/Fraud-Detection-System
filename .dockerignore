@@ -1,0 +1,45 @@
+# Phase 7 (Mark) -- exclude everything not needed at runtime to keep image small.
+
+# Tests / CI / dev tooling
+tests/
+.github/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.run_tests.py
+
+# Notebooks (research-only, not runtime)
+notebooks/
+build_phase*_notebook.py
+
+# Data
+data/
+catboost_info/
+**/catboost_info/
+
+# Reports + results (large PNGs, not used by API)
+reports/
+results/
+
+# Streamlit demo (the API container doesn't serve the UI)
+app.py
+
+# Python build artefacts
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.claude/
+
+# Misc
+*.log
+README.md
+PROGRESS_LOG.md

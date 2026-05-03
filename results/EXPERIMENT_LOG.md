@@ -120,3 +120,5 @@
 | May 1 | 5: Advanced + LLM | CatBoost F1=1.000 vs Claude Opus F1=0.864; IsoForest adds zero signal |
 | May 2 | 6: Explainability | amt_cat_zscore is hub of all interactions; 85.5% fraud hidden by 1 feature |
 | May 3 | 7: Testing + Polish | 46 tests pass; README + experiment log + model card finalized |
+| May 3 | 7: Polish (later) | +48 tests (94 total); FastAPI + Docker + CI added; `final_report.md` compiled |
+| May 3 | 7: Polish (final) | `project_dashboard.png` headline visual built from canonical artefacts; fresh-venv `pytest` 94/94 ✓ + `POST /predict` end-to-end verified |

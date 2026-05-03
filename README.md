@@ -5,6 +5,10 @@
 **Primary Metric:** AUPRC (Area Under Precision-Recall Curve)  
 **Sprint:** Project 4 of 10 | Apr 27 – May 3, 2026
 
+![Project Dashboard — 7-day sprint at a glance](results/project_dashboard.png)
+
+> *Phase progression, frontier-LLM head-to-head, feature-group ablation, and cost-per-1k — the whole sprint in one image. Source: `src/build_headline_dashboard.py`.*
+
 ---
 
 ## Current Status
@@ -317,14 +321,25 @@ pip install -r requirements.txt
 # Train production ensemble (uses cached models if they exist)
 python src/train_production.py
 
-# Run tests (46 tests, ~2s)
+# Run tests (94 tests, ~6s)
 PYTHONPATH=src pytest tests/ -v
 
-# Launch Streamlit UI
+# Launch Streamlit UI (humans)
 streamlit run app.py
+
+# Launch FastAPI service (machines)
+uvicorn api:app --host 0.0.0.0 --port 8000
+
+# Container build + run
+docker build -t fraud-detection-api:1.0.0 .
+docker run --rm -p 8000:8000 fraud-detection-api:1.0.0
+curl http://localhost:8000/health   # {"status":"ok",...}
 
 # Benchmark inference latency
 python src/benchmark_latency.py
+
+# Regenerate the headline dashboard image
+python src/build_headline_dashboard.py
 ```
 
 ---

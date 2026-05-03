@@ -9,7 +9,7 @@
 
 ## Current Status
 
-**Phase 7 complete — project shipped.** Production ensemble: **mean(CatBoost + XGBoost + LightGBM) on 53 features — AUPRC = 0.9840, min expected cost $1,705**. 46 tests pass. Streamlit UI live. Model card, experiment log, and all research reports finalized.
+**Phase 7 complete — project shipped.** Production ensemble: **mean(CatBoost + XGBoost + LightGBM) on 53 features — AUPRC = 0.9840, min expected cost $1,705**. 94 tests across 8 files (77 always-on in CI, ~6s total). Streamlit UI + FastAPI service live. Dockerfile + GitHub Actions CI. Model card, experiment log, and consolidated research report (`reports/final_report.md`) finalized.
 
 The 7-day sprint produced 7 key findings, 50+ experiments across 6 model families, and a production pipeline that beats Claude Opus 4.6 on F1 (1.000 vs 0.864), latency (0.1ms vs 24.2s), and cost ($0.0001 vs $4.50 per 1k predictions).
 
@@ -235,18 +235,22 @@ The 7-day sprint produced 7 key findings, 50+ experiments across 6 model familie
 <tr>
 <td valign="top" width="38%">
 
-**Test Suite (Anthony):** Expanded the test suite from 14 tests (Mark's Phase 6 data pipeline + predict tests) to 46 tests across 4 files. New `test_train_production.py` (17 tests) validates all model artifacts exist, feature columns match the canonical order, threshold logic is consistent, production metrics meet quality floors (AUPRC≥0.97, AUROC≥0.99, F1≥0.90), and the ensemble beats every individual learner on expected cost. New `test_inference_e2e.py` (11 tests) covers determinism, batch-vs-single agreement, alert flag logic, PredictionResult serialization, edge cases (extreme/negative values), and verifies that the ensemble probability is the arithmetic mean of three base learners.<br><br>
-**README + Polish (Anthony):** Comprehensive README with architecture diagram, all 7 key findings, iteration summaries for all 7 phases, setup instructions, and project structure. Consolidated experiment log covers every experiment from both researchers across the full sprint.
+**Quality Floor Tests (Anthony):** Expanded the test suite from 14 → 46 tests across 4 files. New `test_train_production.py` (17 tests) validates all model artifacts exist, feature columns match the canonical 53-column order, threshold logic is consistent, production metrics meet quality floors (AUPRC≥0.97, AUROC≥0.99, F1≥0.90, all base learners≥0.95), and the ensemble beats every individual learner on expected cost. New `test_inference_e2e.py` (11 tests) covers determinism, batch-vs-single agreement (within 1e-4), alert flag logic, PredictionResult serialization, edge cases (extreme/negative values), and verifies that the ensemble probability is the arithmetic mean of three base learners. Plus README overhaul (architecture diagram, Quick Start, project structure, limitations, 12 references) and `EXPERIMENT_LOG.md` consolidating 31 experiments.<br><br>
+**Deployment Surface (Mark):** Added the layer Anthony left for him — 48 more tests across 4 files (94 total in ~6s, 77 always-on in CI). `test_latency_regression.py` (12 tests) encodes Phase 6 latency findings as floors: p50<25ms single, p99<150ms, batch ≥30k rows/s, single-vs-batch ≥100× speedup, ≥100× faster than Opus at p99. `test_robustness_regression.py` (12 tests) encodes counterfactual fragility (≤90% one-flippable) and temporal stability (3 monthly windows) as regression tests. `test_app_smoke.py` (10 AST-based tests) catches Streamlit regressions like a removed `@st.cache_resource`. Built `api.py` (FastAPI: `/health`, `/info`, `/predict`, `/predict_batch`) + 14 tests using TestClient + stub-detector pattern, `Dockerfile` + `.dockerignore`, GitHub Actions CI, and `final_report.md` (~4500 words, research-paper-style consolidation with negative results section).
 
 </td>
 <td align="center" width="24%">
 
-46 tests, 4 files, 1.8s
+<img src="results/mark_phase6_latency.png" width="220">
+
+**94 tests, 8 files, ~6s**
 
 </td>
 <td valign="top" width="38%">
 
-**Combined Insight:** The test suite now encodes the project's key invariants as regression guardrails. The AUPRC≥0.97 floor, the ensemble-beats-individuals cost check, and the 53-feature canonical order are all tested. Any future change that degrades the production model below these floors, breaks the feature contract, or changes the threshold logic will fail CI before it ships.<br><br>
+**Combined Insight:** Anthony's metric-floor tests + Mark's latency-floor tests + Mark's robustness-floor tests together form a full regression cage that catches three classes of degradation a single layer would miss: model quality (Anthony's AUPRC/AUROC/F1 floors), serving speed (Mark's p50/p95/p99 floors), and model behaviour under attack/drift (Mark's counterfactual + temporal-stability floors). 77 unconditional tests run in CI in 1.5s; 17 booster-gated tests run only when model artifacts are present.<br><br>
+**Surprise:** Mark's `test_model_card_exists` fix exposed a real cross-platform bug, not a Windows quirk — `read_text()` without `encoding=` defaults to the system codec (cp1252 on Windows), which can't decode UTF-8 punctuation in the model card. Pinning `encoding="utf-8"` is correct cross-platform behaviour. Also: a Streamlit static AST test costs 10ms per test and catches the kind of regression a unit test would miss (e.g., removing `@st.cache_resource` doesn't break a unit test, but makes the demo unusable).<br><br>
+**Research:** Mitchell et al. (2018, FAT*) — *Model Cards for Model Reporting*; the API's `/info` endpoint exposes the same metadata over HTTP that the model card describes in prose. Caruana et al. (2004, ICML) — *Ensemble Selection from Libraries of Models*; the regression tests lock in the simple-average ensemble choice. FastAPI docs (2025) — `TestClient` + `monkeypatch.setattr` stub pattern for testing without loading the booster set.<br><br>
 **Final Metrics (production ensemble, n=209,715 test):**
 
 | Model | AUPRC | AUROC | F1@0.5 | Min Cost |
@@ -256,7 +260,7 @@ The 7-day sprint produced 7 key findings, 50+ experiments across 6 model familie
 | LightGBM | 0.9787 | 0.9994 | 0.941 | $2,948 |
 | CatBoost | 0.9781 | 0.9997 | 0.880 | $2,088 |
 
-**Project complete.** 7 phases, 50+ experiments, 7 key findings, 46 tests, production ensemble deployed with Streamlit UI.
+**Project complete.** 7 phases, 50+ experiments, 7 key findings, 94 tests across 8 files, two inference surfaces (Streamlit UI + FastAPI), one Docker container, one CI workflow, one consolidated research report. **Week 5 starts Mon May 4 with Deepfake-Audio-Detection Phase 1.**
 
 </td>
 </tr>
@@ -355,12 +359,20 @@ Fraud-Detection-System/
 │   ├── phase5_advanced_llm.ipynb       # Phase 5: SHAP + IsoForest + LLM comparison
 │   └── phase6_anthony_explainability.ipynb # Phase 6: Interaction SHAP + counterfactual
 ├── results/                            # All plots, metrics, experiment artifacts
-├── reports/                            # Daily research reports (day1-day7)
+├── reports/                            # Daily research reports (day1-day7) + final_report.md
+├── api.py                              # FastAPI inference service (/health, /info, /predict, /predict_batch)
+├── Dockerfile                          # Python 3.11-slim production container
+├── .dockerignore
+├── .github/workflows/ci.yml            # pytest + Docker-build smoke job
 ├── tests/
 │   ├── test_data_pipeline.py           # 8 tests: feature pipeline + encoders
 │   ├── test_predict.py                 # 6 tests: FraudDetector predict_one/batch
 │   ├── test_train_production.py        # 17 tests: artifacts, metrics floors, thresholds
-│   └── test_inference_e2e.py           # 11 tests: determinism, edge cases, serialization
+│   ├── test_inference_e2e.py           # 11 tests: determinism, edge cases, serialization
+│   ├── test_latency_regression.py      # 12 tests: p50/p95/p99 + batch + speedup floors
+│   ├── test_robustness_regression.py   # 12 tests: counterfactual + temporal-stability + experiment-log invariants
+│   ├── test_app_smoke.py               # 10 tests: Streamlit AST static checks
+│   └── test_api.py                     # 14 tests: FastAPI with stub detector
 └── data/
     ├── raw/                            # Original HuggingFace download
     └── processed/                      # Feature-engineered parquet

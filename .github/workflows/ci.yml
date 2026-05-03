@@ -1,0 +1,90 @@
+# Phase 7 (Mark) -- CI for the Fraud Detection System.
+#
+# Two jobs:
+#   1. test   - install minimal runtime deps + pytest, run the full test suite.
+#   2. docker - smoke-build the production container (no push).
+#
+# We do NOT run the booster-loading tests in the test job because the GitHub
+# runner doesn't have the trained model artefacts (they're git-ignored at
+# the *.cbm / *.bin level historically and bundled into models/ during the
+# Phase 6 production-pipeline run). The schema/regression tests cover those
+# claims via the cached JSON artefacts that ARE checked in.
+
+name: CI
+
+on:
+  push:
+    branches: ["main", "mark/**", "anthony/**"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    name: pytest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install \
+            "pandas>=2.0" "numpy>=1.24" "scikit-learn>=1.3" \
+            "catboost>=1.2" "xgboost>=2.0" "lightgbm>=4.0" \
+            "fastapi>=0.110" "uvicorn>=0.27" "pydantic>=2.5" "httpx>=0.25" \
+            "streamlit>=1.30" "shap>=0.45" \
+            "pytest>=8.0"
+
+      - name: Run pytest (tests that don't require models/)
+        run: |
+          PYTHONPATH=src pytest \
+            tests/test_data_pipeline.py \
+            tests/test_latency_regression.py \
+            tests/test_robustness_regression.py \
+            tests/test_app_smoke.py \
+            tests/test_api.py \
+            -v --tb=short
+
+      - name: Run pytest (booster-dependent tests, allowed to fail without artefacts)
+        if: ${{ hashFiles('models/cb.cbm', 'models/xgb.json', 'models/lgb.txt') != '' }}
+        run: |
+          PYTHONPATH=src pytest \
+            tests/test_predict.py \
+            tests/test_train_production.py \
+            tests/test_inference_e2e.py \
+            -v --tb=short
+
+  docker:
+    name: docker build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: test
+    if: ${{ hashFiles('models/cb.cbm', 'models/xgb.json', 'models/lgb.txt') != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build container (no push)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: fraud-detection-api:ci
+          load: true
+
+      - name: Smoke-test /health endpoint
+        run: |
+          docker run -d --name fraud-api -p 8000:8000 fraud-detection-api:ci
+          sleep 5
+          curl -fsS http://localhost:8000/health | tee /tmp/health.json
+          grep -q '"status":"ok"' /tmp/health.json
+          docker stop fraud-api
